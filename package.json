@@ -3,7 +3,7 @@
   "version": "0.0.2",
   "description": "use require('style.css') in javascript and bundle-style to bundle them all",
   "main": "lib/index.js",
-  "files": "lib/",
+  "files": "lib/index.js",
   "scripts": {
     "test": "cult"
   },
