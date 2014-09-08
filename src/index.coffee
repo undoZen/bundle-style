@@ -2,7 +2,6 @@ detective = require('detective')
 resolve = require('resolve')
 fs = require('fs')
 path = require('path')
-fileName = __dirname + '/lib/client.js'
 chtmlx = require('chtmlx')
 iced = require('iced-coffee-script')
 _ = require('lodash')
@@ -42,16 +41,17 @@ md5OfFile = (filepath) ->
   hash.update(fs.readFileSync(filepath))
   hash.digest('hex')
 
-module.exports = ->
+module.exports = (fileName) ->
   console.log 'starting bundle style'
-  filePath = path.resolve(__dirname, 'src', 'bundle-style.less')
+  dirPath = path.dirname(fileName)
+  filePath = path.resolve(dirPath, 'bundle-style.less')
   cssFilePath = filePath.replace(/\.less$/, '.css')
 
   requiredStyle = (_.unique _.flatten deps fileName).filter (m) -> m and not m.match(/bundle-style\.css$/i)
 
   content = requiredStyle
     .map((file) ->
-      relativePath = path.relative __dirname+'/src', file
+      relativePath = path.relative dirPath, file
       if relativePath.match(/\.css$/i)
         "/* file: #{file} / md5: #{md5OfFile(file)} */ @import (inline) \"./#{relativePath}\";"
       else
@@ -75,7 +75,7 @@ module.exports = ->
       return
 
     css = tree.toCSS
-      sourceMapBasepath: __dirname
+      sourceMapBasepath: dirPath
       sourceMapRootpath: 'file:///'
       sourceMap: true
 
