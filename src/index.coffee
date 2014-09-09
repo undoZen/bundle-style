@@ -7,6 +7,8 @@ iced = require('iced-coffee-script')
 _ = require('lodash')
 less = require('less')
 
+env = process.env.NODE_ENV ? 'development'
+
 deps = (fileName) ->
 
   dirname = path.dirname fileName
@@ -74,10 +76,13 @@ module.exports = (fileName) ->
       console.error err.stack
       return
 
-    css = tree.toCSS
-      sourceMapBasepath: dirPath
-      sourceMapRootpath: 'file:///'
-      sourceMap: true
+    cssOptions = {}
+    if env is 'development'
+      cssOptions =
+        sourceMapBasepath: dirPath
+        sourceMapRootpath: 'file:///'
+        sourceMap: true
+    css = tree.toCSS cssOptions
 
     fs.writeFile cssFilePath, css, 'utf-8', (err) ->
       if err
