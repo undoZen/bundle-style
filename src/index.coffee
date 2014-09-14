@@ -43,48 +43,63 @@ md5OfFile = (filepath) ->
   hash.update(fs.readFileSync(filepath))
   hash.digest('hex')
 
-module.exports = (fileName) ->
-  console.log 'starting bundle style'
-  dirPath = path.dirname(fileName)
-  filePath = path.resolve(dirPath, 'bundle-style.less')
-  cssFilePath = filePath.replace(/\.less$/, '.css')
+module.exports = class BundleStyle
+  constructor: (@fileName) ->
+    if @ not instanceof BundleStyle
+      return new BundleStyle(fileName)
+    @dirPath = path.dirname(@fileName)
+    @lessFilePath = path.resolve(@dirPath, 'bundle-style.less')
+    @cssFilePath = @lessFilePath.replace(/\.less$/, '.css')
+    @lastContent = ''
+    try
+      @lastContent = fs.readFileSync @lessFilePath, 'utf-8'
+    @content = ''
 
-  requiredStyle = (_.unique _.flatten deps fileName).filter (m) -> m and not m.match(/bundle-style\.css$/i)
-
-  content = requiredStyle
-    .map((file) ->
-      relativePath = path.relative dirPath, file
-      if relativePath.match(/\.css$/i)
-        "/* file: #{file} / md5: #{md5OfFile(file)} */ @import (inline) \"./#{relativePath}\";"
-      else
-        "/* file: #{file} / md5: #{md5OfFile(file)} */ @import \"./#{relativePath}\";"
-    )
-    .join('\n')
-  if lastContent is content
-    return
-  lastContent = content
-  fs.writeFile filePath, content, 'utf-8', (err) ->
-    if err
-      console.error err.stack
-  parser = new less.Parser
-    filename: filePath
-    paths: [path.dirname(filePath)]
-  parser.parse content, (err, tree) ->
-    if err
-      console.error err.message
-      console.error err
-      console.error err.stack
+  generateLess: ->
+    console.log 'generating less'
+    @content = (_.unique _.flatten deps @fileName)
+      .filter((m) -> m and not m.match(/bundle-style\.css$/i))
+      .map((file) =>
+        relativePath = path.relative @dirPath, file
+        if relativePath.match(/\.css$/i)
+          "/* file: #{file} / md5: #{md5OfFile(file)} */ @import (inline) \"./#{relativePath}\";"
+        else
+          "/* file: #{file} / md5: #{md5OfFile(file)} */ @import \"./#{relativePath}\";"
+      )
+      .join('\n')
+    if @lastContent is @content
       return
+    @lastContent = @content
+    fs.writeFileSync @lessFilePath, @content, 'utf-8'
+    @compileLess()
 
-    cssOptions = {}
-    if env is 'development'
-      cssOptions =
-        sourceMapBasepath: dirPath
-        sourceMapRootpath: 'file:///'
-        sourceMap: true
-    css = tree.toCSS cssOptions
-
-    fs.writeFile cssFilePath, css, 'utf-8', (err) ->
+  compileLess: ->
+    console.log 'recompiling css'
+    parser = new less.Parser
+      filename: @lessFilePath
+      paths: [path.dirname(@lessFilePath)]
+    parser.parse @content, (err, tree) =>
       if err
+        console.error err.message
+        console.error err
         console.error err.stack
-      console.log 'done bundle style'
+        return
+
+      cssOptions = {}
+      if env is 'development'
+        cssOptions =
+          sourceMapBasepath: @dirPath
+          sourceMapRootpath: 'file:///'
+          sourceMap: true
+      css = tree.toCSS cssOptions
+
+      fs.writeFile @cssFilePath, css, 'utf-8', (err) ->
+        if err
+          console.error err.stack
+        console.log 'done bundle style'
+
+  generateCss: ->
+    @generateLess()
+    if @lastContent is @content
+      return
+    @compileLess()
