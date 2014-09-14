@@ -50,9 +50,7 @@ module.exports = class BundleStyle
     @dirPath = path.dirname(@fileName)
     @lessFilePath = path.resolve(@dirPath, 'bundle-style.less')
     @cssFilePath = @lessFilePath.replace(/\.less$/, '.css')
-    @lastContent = ''
-    try
-      @lastContent = fs.readFileSync @lessFilePath, 'utf-8'
+    @lastContent = @lastContent || false
     @content = ''
 
   generateLess: ->
