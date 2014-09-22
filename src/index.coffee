@@ -11,31 +11,37 @@ env = process.env.NODE_ENV ? 'development'
 
 deps = (fileName) ->
 
-  dirname = path.dirname fileName
-  src = fs.readFileSync(fileName, 'utf-8')
-  if fileName.match(/\.cx\.html$/i)
-    src = iced.compile(chtmlx(src), {header: false, bare: true})
-  #console.log src
-  d = detective(src)
-  #console.log d
-  d.map (r) ->
-    if r.indexOf('node_modules') > -1
-      return null
-    if r[0] is '.' and r.match(/\.(css|less)$/i)
-      return path.resolve dirname, r
-    try
-      resolved = resolve.sync r,
-        basedir: dirname
-      if resolved.match(/\.(css|less)$/i)
-        return resolved
-      if resolved.indexOf('node_modules') > -1 and resolved.indexOf('ccc-ui') is -1
+  _added = {}
+  _deps = (_fileName) ->
+    dirname = path.dirname _fileName
+    src = fs.readFileSync(_fileName, 'utf-8')
+    if _fileName.match(/\.cx\.html$/i)
+      src = iced.compile(chtmlx(src), {header: false, bare: true})
+    #console.log src
+    d = detective(src)
+    #console.log d
+    d.map (r) ->
+      if _added[r]
         return null
-      return deps resolved
-    catch err
-      console.error err.stack
-      console.error err
-      console.log fileName, r, resolved
-      return null
+      _added[r] = true
+      if r.indexOf('node_modules') > -1
+        return null
+      if r[0] is '.' and r.match(/\.(css|less)$/i)
+        return path.resolve dirname, r
+      try
+        resolved = resolve.sync r,
+          basedir: dirname
+        if resolved.match(/\.(css|less)$/i)
+          return resolved
+        if resolved.indexOf('node_modules') > -1 and resolved.indexOf('ccc-') is -1
+          return null
+        return deps resolved
+      catch err
+        console.error err.stack
+        console.error err
+        console.log _fileName, r, resolved
+        return null
+  _.unique _.flatten _deps fileName
 
 crypto = require('crypto')
 md5OfFile = (filepath) ->
@@ -55,7 +61,7 @@ module.exports = class BundleStyle
 
   generateLess: ->
     console.log 'generating less'
-    @content = (_.unique _.flatten deps @fileName)
+    @content = deps @fileName
       .filter((m) -> m and not m.match(/bundle-style\.css$/i))
       .map((file) =>
         relativePath = path.relative @dirPath, file
