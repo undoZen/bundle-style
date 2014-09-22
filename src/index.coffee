@@ -21,6 +21,8 @@ deps = (fileName) ->
     d = detective(src)
     #console.log d
     d.map (r) ->
+      resolved = resolve.sync r,
+        basedir: dirname
       if _added[r]
         return null
       _added[r] = true
@@ -29,13 +31,11 @@ deps = (fileName) ->
       if r[0] is '.' and r.match(/\.(css|less)$/i)
         return path.resolve dirname, r
       try
-        resolved = resolve.sync r,
-          basedir: dirname
         if resolved.match(/\.(css|less)$/i)
           return resolved
         if resolved.indexOf('node_modules') > -1 and resolved.indexOf('ccc-') is -1
           return null
-        return deps resolved
+        return _deps resolved
       catch err
         console.error err.stack
         console.error err
