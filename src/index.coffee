@@ -23,9 +23,9 @@ deps = (fileName) ->
     d.map (r) ->
       resolved = resolve.sync r,
         basedir: dirname
-      if _added[r]
+      if _added[resolved]
         return null
-      _added[r] = true
+      _added[resolved] = true
       if r.indexOf('node_modules') > -1
         return null
       if r[0] is '.' and r.match(/\.(css|less)$/i)
